@@ -10,14 +10,7 @@ ifeq ($(OS),Windows_NT)
 	TERRAFORM_PLUGIN_CACHE_DIRECTORY=$$(cygpath -u "$(shell pwd -P)")/cache/plugins
 	TERRAFORM_PLUGIN_EXTENSION=.exe
 else
-	UNAME_S=$$(shell uname -s)
-
-	ifeq ($(UNAME_S),Darwin)
-		TERRAFORM_PLATFORM=darwin_amd64
-	else
-		TERRAFORM_PLATFORM=linux_amd64
-	endif
-
+	TERRAFORM_PLATFORM=$$(terraform -version | awk 'FNR == 2 {print $$2}')
 	TERRAFORM_PLUGIN_CACHE_DIRECTORY=$(shell pwd -P)/cache/plugins
 endif
 
@@ -33,7 +26,7 @@ build:
 	rm -f "$(TERRAFORM_PLUGIN_EXECUTABLE)"
 	go build -o "$(TERRAFORM_PLUGIN_EXECUTABLE)"
 
-example: example-build example-init example-apply example-apply example-destroy
+example: example-build example-init example-apply example-destroy
 
 example-apply:
 	export TF_CLI_CONFIG_FILE="$(shell pwd -P)/example.tfrc" \
@@ -43,8 +36,8 @@ example-apply:
 		&& terraform apply -auto-approve
 
 example-build:
+	rm -rf "$(TERRAFORM_PLUGIN_DIRECTORY_EXAMPLE)"
 	mkdir -p "$(TERRAFORM_PLUGIN_DIRECTORY_EXAMPLE)"
-	rm -f "$(TERRAFORM_PLUGIN_EXECUTABLE_EXAMPLE)"
 	go build -o "$(TERRAFORM_PLUGIN_EXECUTABLE_EXAMPLE)"
 
 example-destroy:
@@ -60,8 +53,7 @@ example-init:
 		&& export TF_PLUGIN_CACHE_DIR="$(TERRAFORM_PLUGIN_CACHE_DIRECTORY)" \
 		&& cd ./example \
 		&& rm -f .terraform.lock.hcl \
-		&& terraform init \
-			-verify-plugins=false
+		&& terraform init
 
 example-plan:
 	export TF_CLI_CONFIG_FILE="$(shell pwd -P)/example.tfrc" \
